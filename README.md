@@ -21,4 +21,6 @@ This will deploy 1 job-manager, 3 task-manager, and setup the oss to save checkp
 ## Flink springboot
 Flink can't work with `gradle bootJar`, so we should generate Jar with `gradle clean shadowJar`
 All settings are in build.gradle
+
+Also, don't forget to set config in `src/main/resource/application.yml`
  
