@@ -1,0 +1,14 @@
+ots:
+  accessKey:
+  secretKey:
+  endPoint:
+  instanceName:
+  tableName:
+
+rocketmq:
+  accessKey: 
+  secretKey: 
+  topic: 
+  tag: 
+  group: 
+  endpoint:

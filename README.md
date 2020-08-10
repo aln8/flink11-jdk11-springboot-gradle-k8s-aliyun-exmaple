@@ -18,4 +18,7 @@ kubectl apply -f deploy/
 
 This will deploy 1 job-manager, 3 task-manager, and setup the oss to save checkpoints
 
+## Flink springboot
+Flink can't work with `gradle bootJar`, so we should generate Jar with `gradle clean shadowJar`
+All settings are in build.gradle
  

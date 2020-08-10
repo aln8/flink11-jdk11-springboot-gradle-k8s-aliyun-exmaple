@@ -5,49 +5,89 @@
  * For more details take a look at the Writing Custom Plugins chapter in the Gradle
  * User Manual available at https://docs.gradle.org/6.5.1/userguide/custom_plugins.html
  */
+import com.github.jengelman.gradle.plugins.shadow.transformers.*
 
 plugins {
-    // Apply the Java Gradle plugin development plugin to add support for developing Gradle plugins
+    // Apply the java plugin to add support for Java
+    id 'java'
+    id 'idea'
+
+    // Apply the application plugin to add support for building a CLI application.
+    id 'application'
     id 'java-gradle-plugin'
+
+    // springboot
+    id 'org.springframework.boot' version '2.3.1.RELEASE'
+
+    // shadowJar
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
 }
 
+version = '1.0.1'
+mainClassName = 'flink.App'
+description = """Flink Job"""
+
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+applicationDefaultJvmArgs = ["-Dlog4j.configurationFile=log4j.properties"]
 repositories {
-    // Use jcenter for resolving dependencies.
-    // You can declare any Maven/Ivy/file repository here.
-    jcenter()
+    maven { url 'https://maven.aliyun.com/repository/public' }
+    maven { url 'https://maven.aliyun.com/repository/jcenter' }
+}
+
+// NOTE: We cannot use "compileOnly" or "shadow" configurations since then we could not run code
+// in the IDE or with "gradle run". We also cannot exclude transitive dependencies from the
+// shadowJar yet (see https://github.com/johnrengelman/shadow/issues/159).
+// -> Explicitly define the // libraries we want to be included in the "flinkShadowJar" configuration!
+configurations {
+    all*.exclude group: "org.springframework.boot", module: "spring-boot-starter-logging"
+    all*.exclude group: "ch.qos.logback"
+    all*.exclude group: "org.slf4j", module: "log4j-over-slf4j" // allow using log4j 2.x
+    all*.exclude group: "org.slf4j", module: "slf4j-simple"     // log4j is the configured backend
 }
 
 dependencies {
-    // Use JUnit test framework for unit tests
-    testImplementation 'junit:junit:4.13'
+    // spring boot starter deps
+    implementation 'org.springframework.boot:spring-boot-starter:2.3.1.RELEASE'
+
+    // flink
+    implementation 'org.apache.flink:flink-streaming-java_2.12:1.11.0'
+
+    // Aliyun
+    implementation 'com.aliyun.openservices:ons-client:1.8.4.Final'
+    implementation 'com.aliyun.openservices:tablestore:5.4.0:jar-with-dependencies'
+
+    // lombok
+    compileOnly 'org.projectlombok:lombok:1.18.12'
+    annotationProcessor 'org.projectlombok:lombok:1.18.12'
+
+    // log
+    implementation "org.apache.logging.log4j:log4j-api:2.12.1"
+    implementation "org.apache.logging.log4j:log4j-core:2.12.1"
+    implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.12.1"
+    implementation "org.slf4j:slf4j-log4j12:1.7.15"
 }
 
-gradlePlugin {
-    // Define the plugin
-    plugins {
-        greeting {
-            id = 'flink11.java11.springboot.k8s.aliyun.exmaple.greeting'
-            implementationClass = 'flink11.java11.springboot.k8s.aliyun.exmaple.Flink11Java11SpringbootK8sAliyunExmaplePlugin'
-        }
+shadowJar {
+    zip64 true
+
+    // Required for Spring
+    mergeServiceFiles()
+    transform(AppendingTransformer) { resource = 'reference.conf'  }
+    transform(AppendingTransformer) { resource = 'META-INF/spring.handlers'  }
+    transform(AppendingTransformer) { resource = 'META-INF/spring.schemas'  }
+    transform(AppendingTransformer) { resource = 'META-INF/spring.tooling'  }
+    transform(PropertiesFileTransformer) {
+        paths = ['META-INF/spring.factories' ]
+        mergeStrategy = "append"
     }
-}
 
-// Add a source set for the functional test suite
-sourceSets {
-    functionalTest {
+    manifest {
+        attributes 'Main-Class': "${mainClassName}"
     }
-}
-
-gradlePlugin.testSourceSets(sourceSets.functionalTest)
-configurations.functionalTestImplementation.extendsFrom(configurations.testImplementation)
-
-// Add a task to run the functional tests
-tasks.register('functionalTest', Test) {
-    testClassesDirs = sourceSets.functionalTest.output.classesDirs
-    classpath = sourceSets.functionalTest.runtimeClasspath
-}
-
-check {
-    // Run the functional tests as part of `check`
-    dependsOn(tasks.functionalTest)
 }
