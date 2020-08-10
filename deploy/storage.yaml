@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: flink-pv-oss
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: flink-oss-sc
+  flexVolume:
+    driver: "alicloud/oss"
+    options:
+      bucket: ${YOUR_BUCKET_NAME}
+      url: ${YOUR_BUCKET_URL}
+      akId: ${YOUR_ALI_KEY_ID}
+      akSecret: ${YOUR_ALI_KEY_SECRET}
+      otherOpts: "-o max_stat_cache_size=0 -o allow_other"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: flink-pvc-oss
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: flink-oss-sc
